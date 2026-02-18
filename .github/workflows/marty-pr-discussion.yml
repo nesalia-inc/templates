@@ -14,9 +14,7 @@ permissions:
 
 jobs:
   discuss:
-    if: |
-      github.event.issue.pull_request.html_url != '' &&
-      contains(github.event.comment.body, '@martyy-code')
+    if: contains(github.event.comment.body, '@martyy-code')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
