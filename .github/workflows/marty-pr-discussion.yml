@@ -1,7 +1,7 @@
 name: Marty PR Discussion
 
 on:
-  pull_request_comment:
+  issue_comment:
     types: [created]
   pull_request_review_comment:
     types: [created]
@@ -14,7 +14,9 @@ permissions:
 
 jobs:
   discuss:
-    if: contains(github.event.comment.body, '@martyy-code')
+    if: |
+      (github.event.issue.pull_request != null || github.event.pull_request != null) &&
+      contains(github.event.comment.body, '@martyy-code')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -32,7 +34,12 @@ jobs:
       - name: Get PR number
         id: pr-info
         run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
+          # Handle both issue_comment on PR and pull_request_review_comment events
+          if [ "${{ github.event.issue.pull_request.number }}" != "" ]; then
+            PR_NUMBER="${{ github.event.issue.pull_request.number }}"
+          else
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
         shell: bash
 
