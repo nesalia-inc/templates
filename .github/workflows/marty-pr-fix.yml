@@ -1,0 +1,97 @@
+name: Marty PR Fix
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  fix:
+    if: >
+      contains(github.event.issue.pull_request.url, 'pull_request') &&
+      (contains(github.event.comment.body, '@martyy-code fix') ||
+       contains(github.event.comment.body, '@martyy-code fix this') ||
+       contains(github.event.comment.body, '@martyy-code correct') ||
+       contains(github.event.comment.body, '@martyy-code apply'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.issue.pull_request.head.ref }}
+          token: ${{ secrets.MARTY_TOKEN }}
+
+      - name: Generate Marty token
+        id: marty-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.MARTY_APP_ID }}
+          private-key: ${{ secrets.MARTY_APP_PRIVATE_KEY }}
+
+      - name: Get PR info
+        id: pr-info
+        run: |
+          PR_URL="${{ github.event.issue.pull_request.url }}"
+          PR_NUMBER=$(echo $PR_URL | grep -oP '/pulls/\K[0-9]+')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.event.issue.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Marty Fixes Issues in PR
+        uses: nesalia-inc/marty-action@1.0.0
+        with:
+          github_token: ${{ steps.marty-token.outputs.token }}
+          allowed_bots: '*'
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ steps.pr-info.outputs.pr_number }}
+            BRANCH: ${{ steps.pr-info.outputs.branch }}
+            COMMENT AUTHOR: ${{ github.event.comment.user.login }}
+            COMMENT: ${{ github.event.comment.body }}
+
+            You are Marty, an AI coding assistant tasked with fixing issues in a Pull Request.
+
+            ## Your Task
+
+            1. Read the PR details, description, and all comments to understand what needs to be fixed
+            2. Review the changed files to understand the current implementation
+            3. Identify the issues that need to be addressed based on the comments
+            4. Implement the fixes directly
+            5. Commit the changes to the same branch
+
+            ## Fix Guidelines
+
+            - Make targeted, precise fixes
+            - Follow the project's coding conventions
+            - Write clear, concise commit messages
+            - Ensure the fix doesn't break existing functionality
+            - If tests exist, run them to verify the fix
+
+            ## Important
+
+            - You are already on the branch: ${{ steps.pr-info.outputs.branch }}
+            - Use Bash for git commands (git add, git commit, git push)
+            - Use Write/Edit tools to modify files
+            - Commit with a descriptive message referencing the issue
+            - Push directly to the same branch (the PR will update automatically)
+
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.5
+
+      - name: Comment on PR
+        if: success()
+        run: |
+          gh pr comment ${{ steps.pr-info.outputs.pr_number }} \
+            --body "I've applied the fixes based on the discussion. Please review the updated changes."
+        env:
+          GH_TOKEN: ${{ steps.marty-token.outputs.token }}
