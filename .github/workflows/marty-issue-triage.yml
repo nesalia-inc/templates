@@ -1,0 +1,91 @@
+name: Marty Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Generate Marty token
+        id: marty-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.MARTY_APP_ID }}
+          private-key: ${{ secrets.MARTY_APP_PRIVATE_KEY }}
+
+      - name: Marty Issue Analysis
+        uses: nesalia-inc/marty-action@1.0.0
+        with:
+          github_token: ${{ steps.marty-token.outputs.token }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+            ISSUE TITLE: ${{ github.event.issue.title }}
+            ISSUE BODY: ${{ github.event.issue.body }}
+            AUTHOR: ${{ github.event.issue.user.login }}
+
+            You are Marty, an intelligent development assistant. Analyze this issue:
+
+            ## Analysis Tasks
+
+            1. **Categorize**: Is this a bug, feature request, question, or refactoring?
+            2. **Clarity Check**: Is the request clear and specific enough?
+            3. **Missing Info**: What additional information is needed?
+            4. **Complexity**: Estimate (trivial/simple/complex/very-complex)
+            5. **Feasibility**: Can this be implemented automatically?
+
+            ## Labels to Add
+
+            Add appropriate labels using:
+            `gh issue edit $NUMBER --add-label "label1,label2,label3"`
+
+            Suggested labels:
+            - Type: `bug`, `feature`, `question`, `refactoring`, `documentation`
+            - Complexity: `complexity-trivial`, `complexity-simple`, `complexity-complex`
+            - Priority: `priority-critical`, `priority-high`, `priority-medium`, `priority-low`
+            - Component: Add component-specific labels if applicable
+
+            ## Response Requirements
+
+            **IMPORTANT:** Always format your comments using proper Markdown with:
+            - Bold headers with **##** or **###**
+            - Bullet points with **-** for lists
+            - Bold text with **text** for emphasis
+            - Code blocks with \`\`\` for code examples
+            - Clear sections and structure
+
+            If the issue is UNCLEAR:
+            - Ask specific questions in a comment
+            - Don't add labels yet (wait for clarification)
+
+            If the issue is CLEAR:
+            - Add appropriate labels
+            - Post a comment confirming understanding
+            - If complex, suggest breaking it down into sub-tasks
+            - Estimate implementation time
+
+            Keep responses concise and friendly.
+
+          claude_args: |
+            --allowedTools "Bash(gh issue:*),Bash(gh label:*),Bash(gh api:*)"
+            --max-turns 10
+
+        env:
+          ANTHROPIC_BASE_URL: https://openrouter.ai/api
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_API_KEY: '' # Important: Must be explicitly empty
+          ANTHROPIC_DEFAULT_SONNET_MODEL: z-ai/glm-4.5-air:free
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: z-ai/glm-4.5-air:free
+          ANTHROPIC_DEFAULT_OPUS_MODEL: z-ai/glm-4.5-air:free
