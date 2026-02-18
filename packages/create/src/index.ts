@@ -5,6 +5,8 @@
  */
 
 import enquirer from 'enquirer';
+import { loadTemplateConfig, type TemplatePrompt } from './template-loader.js';
+import { runTemplatePrompts } from './prompts.js';
 
 const TEMPLATES = [
   { id: 'basic', name: 'Basic', description: 'Minimal project setup' },
@@ -77,7 +79,11 @@ function showTemplates(): void {
   console.log('');
 }
 
-function showWelcome(projectName: string, template?: string): void {
+function showWelcome(
+  projectName: string,
+  template?: string,
+  templateAnswers: Record<string, any> = {}
+): void {
   console.log('');
   console.log('┌─────────────────────────────────────────────┐');
   console.log('│  @nesalia/create                           │');
@@ -91,6 +97,17 @@ function showWelcome(projectName: string, template?: string): void {
   } else {
     console.log('Template: (not selected)');
   }
+
+  // Display template-specific answers
+  if (Object.keys(templateAnswers).length > 0) {
+    console.log('');
+    console.log('Template options:');
+    for (const [key, value] of Object.entries(templateAnswers)) {
+      const displayValue = Array.isArray(value) ? value.join(', ') : value;
+      console.log(`  ${key}: ${displayValue}`);
+    }
+  }
+
   console.log('');
   console.log('(DUMMY MODE - No actual project will be created)');
   console.log('');
@@ -159,5 +176,25 @@ export async function run(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  showWelcome(finalProjectName, finalTemplate);
+  // Load template configuration and run template-specific prompts
+  let templatePrompts: TemplatePrompt[] = [];
+  let templateAnswers: Record<string, any> = {};
+
+  if (finalTemplate) {
+    const templateConfig = await loadTemplateConfig(finalTemplate);
+    if (templateConfig && templateConfig.prompts && templateConfig.prompts.length > 0) {
+      templatePrompts = templateConfig.prompts;
+      console.log('');
+      console.log('Template-specific options:');
+      console.log('');
+
+      // Run template prompts with project name as initial context
+      templateAnswers = await runTemplatePrompts(templatePrompts, {
+        name: finalProjectName,
+        template: finalTemplate,
+      });
+    }
+  }
+
+  showWelcome(finalProjectName, finalTemplate ?? '', templateAnswers);
 }
