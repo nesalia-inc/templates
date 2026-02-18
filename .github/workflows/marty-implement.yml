@@ -1,0 +1,80 @@
+name: Marty Issue Implementation
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  implement:
+    if: contains(github.event.comment.body, '@martyy-code')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.MARTY_TOKEN }}
+
+      - name: Generate Marty token
+        id: marty-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.MARTY_APP_ID }}
+          private-key: ${{ secrets.MARTY_APP_PRIVATE_KEY }}
+
+      - name: Marty Implements Issue
+        uses: nesalia-inc/marty-action@1.0.0
+        with:
+          github_token: ${{ steps.marty-token.outputs.token }}
+          allowed_bots: '*'
+          prompt: |
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+            COMMENT AUTHOR: ${{ github.event.comment.user.login }}
+            COMMENT: ${{ github.event.comment.body }}
+
+            You are Marty, an AI coding assistant.
+
+            ## Your Task
+
+            1. Read the ENTIRE issue history (title, body, all previous comments)
+            2. Understand what needs to be implemented
+            3. Implement the feature/fix described in the issue
+            4. Create a Pull Request with your implementation
+            5. Add appropriate tests if needed
+
+            ## Implementation Guidelines
+
+            - Be concise but thorough
+            - Follow the project's coding conventions
+            - Write clear commit messages
+            - Create a PR with a descriptive title and body
+            - Reference the issue in the PR description
+
+            ## Important
+
+            - Use Bash to run git commands
+            - Use Write/Edit tools to modify files
+            - Create a branch for your changes
+            - Push the branch and create a PR using gh commands
+
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.5
+
+      - name: Comment on Issue
+        if: success()
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "I've implemented this feature and created PR #${{ steps.pr.outputs.pr_number }}"
+        env:
+          GH_TOKEN: ${{ steps.marty-token.outputs.token }}
