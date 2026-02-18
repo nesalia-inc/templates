@@ -83,9 +83,8 @@ jobs:
             --max-turns 10
 
         env:
-          ANTHROPIC_BASE_URL: https://openrouter.ai/api
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
-          ANTHROPIC_API_KEY: '' # Important: Must be explicitly empty
-          ANTHROPIC_DEFAULT_SONNET_MODEL: z-ai/glm-4.5-air:free
-          ANTHROPIC_DEFAULT_HAIKU_MODEL: z-ai/glm-4.5-air:free
-          ANTHROPIC_DEFAULT_OPUS_MODEL: z-ai/glm-4.5-air:free
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.5
