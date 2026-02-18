@@ -72,7 +72,7 @@ jobs:
 
           claude_args: |
             --allowedTools "Bash(gh:*),Read"
-            --max-turns 8
+            --max-turns 20
 
         env:
           ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
