@@ -23,22 +23,7 @@ npx @nesalia/create --help
 
 ## Contributing
 
-```bash
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run tests
-pnpm test
-
-# Lint
-pnpm lint
-
-# Format code
-pnpm format
-```
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Packages
 
