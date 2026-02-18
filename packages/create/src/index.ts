@@ -44,7 +44,8 @@ function parseArgs(args: string[]): { projectName?: string; options: Options } {
 }
 
 function showHelp(): void {
-  console.log(`
+  console.log(
+    `
 @nesalia/create - Create nesalia projects
 
 Usage:
@@ -62,8 +63,9 @@ Examples:
   npx @nesalia/create my-app --template react --typescript
 
 Templates:
-${TEMPLATES.map((t) => `  ${t.id.padEnd(10)} ${t.description}`).join('\n')}
-`.trim());
+${TEMPLATES.map(t => `  ${t.id.padEnd(10)} ${t.description}`).join('\n')}
+`.trim()
+  );
 }
 
 function showTemplates(): void {
@@ -84,7 +86,7 @@ function showWelcome(projectName: string, template?: string): void {
   console.log('');
   console.log(`Project name: ${projectName}`);
   if (template) {
-    const templateInfo = TEMPLATES.find((t) => t.id === template);
+    const templateInfo = TEMPLATES.find(t => t.id === template);
     console.log(`Template: ${templateInfo?.name || template}`);
   } else {
     console.log('Template: (not selected)');
@@ -137,7 +139,7 @@ export async function run(args: string[]): Promise<void> {
       type: 'select',
       name: 'template',
       message: 'Select a template:',
-      choices: TEMPLATES.map((t) => ({
+      choices: TEMPLATES.map(t => ({
         name: t.id,
         message: `${t.name} - ${t.description}`,
       })),
@@ -146,11 +148,11 @@ export async function run(args: string[]): Promise<void> {
     finalTemplate = response.template;
   }
 
-  if (finalTemplate && !TEMPLATES.find((t) => t.id === finalTemplate)) {
+  if (finalTemplate && !TEMPLATES.find(t => t.id === finalTemplate)) {
     console.error(`Error: Unknown template "${finalTemplate}"`);
     console.log('');
     console.log('Available templates:');
-    TEMPLATES.forEach((t) => {
+    TEMPLATES.forEach(t => {
       console.log(`  ${t.id}`);
     });
     console.log('');

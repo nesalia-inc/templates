@@ -41,12 +41,12 @@ my-cli/
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| name | Project name | (user input) |
-| description | Project description | (user input) |
-| rich | Add rich for fancy output | false |
-| docker | Add Dockerfile | false |
+| Option      | Description               | Default      |
+| ----------- | ------------------------- | ------------ |
+| name        | Project name              | (user input) |
+| description | Project description       | (user input) |
+| rich        | Add rich for fancy output | false        |
+| docker      | Add Dockerfile            | false        |
 
 ## CLI Commands (Generated)
 

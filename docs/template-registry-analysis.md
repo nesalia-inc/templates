@@ -19,18 +19,21 @@ This document outlines the analysis and proposed Developer Experience (DX) for c
 ### Existing Solutions
 
 #### create-vite (Vite)
+
 - **Command:** `npm create vite@latest` or `npm init vite`
 - **Approach:** Templates embedded within the package + external template support
 - **Structure:** Templates as subfolders (e.g., `/template-*`)
 - **Strengths:** Fast, simple, multiple startup options
 
 #### create-react-app (deprecated but instructive)
+
 - **Command:** `npx create-react-app my-app`
 - **Approach:** Monolithic package with fixed template
 - **Limitation:** Lack of flexibility led to deprecation
 - **Lesson learned:** Flexibility and extensibility are crucial
 
 #### hygen
+
 - **Approach:** Local templates within project (`_templates/`)
 - **Philosophy:** "Templates live in your project"
 - **Strengths:** Full flexibility, file injection, interactive prompts
@@ -39,11 +42,13 @@ This document outlines the analysis and proposed Developer Experience (DX) for c
 ### npm `create-*` Convention
 
 According to npm documentation:
+
 - `npm init <package>` → executes `npx create-<package>`
 - `npm init @scope` → executes `npx @scope/create`
 - Options are forwarded to the create package
 
 **Examples:**
+
 ```bash
 npm init foo          → npm exec create-foo
 npm init @usr/foo     → npm exec @usr/create-foo
@@ -71,21 +76,25 @@ npm init @usr         → npm exec @usr/create
 ### User Flow
 
 #### 1. Simplest Creation
+
 ```bash
 npm init @nesalia/templates my-app
 ```
 
 #### 2. With Template Selection
+
 ```bash
 npm init @nesalia/templates my-app --template react
 ```
 
 #### 3. With Advanced Options
+
 ```bash
 npm init @nesalia/templates my-app --template react --typescript --tailwind
 ```
 
 #### 4. List Available Templates
+
 ```bash
 npm init @nesalia/templates --list
 ```
@@ -93,6 +102,7 @@ npm init @nesalia/templates --list
 ### Key DX Characteristics
 
 #### Discovery
+
 ```bash
 $ npm init @nesalia/templates --help
 
@@ -106,6 +116,7 @@ $ npm init @nesalia/templates --help
 ```
 
 #### Interactive Prompts
+
 ```bash
 $ npm init @nesalia/templates my-app
 
@@ -121,6 +132,7 @@ $ npm init @nesalia/templates my-app
 ```
 
 #### Clear Output
+
 ```bash
 ✓ Created my-app/
 ✓ Copied 15 files
@@ -132,6 +144,7 @@ Next steps:
 ```
 
 #### Extensibility
+
 ```bash
 # External template
 npm init @nesalia/templates my-app --from @mycompany/template-legacy
@@ -147,6 +160,7 @@ npm init @nesalia/templates my-app --from ./local-template
 ### Package Structure
 
 #### `@nesalia/create` (Main CLI)
+
 - **Binary:** `create-nesalia`
 - **Responsibilities:**
   - Depends on template packages
@@ -155,6 +169,7 @@ npm init @nesalia/templates my-app --from ./local-template
   - Provides user feedback
 
 #### `@nesalia/template-xxx` (Templates)
+
 - **Contains:**
   - Template files
   - Metadata (package.json with special fields)
@@ -195,20 +210,24 @@ npm init @nesalia/templates my-app --from ./local-template
 ### Template System Features
 
 #### Variables
+
 - `{{name}}` - Project name
 - `{{description}}` - Project description
 - Custom variables defined in prompts
 
 #### Conditionals
+
 - Include/exclude files based on options
 - Feature-specific file generation
 
 #### Smart Injections
+
 - Add dependencies to package.json
 - Configure existing files
 - Merge configurations
 
 #### Hooks
+
 - `pre-gen` - Before generation
 - `post-gen` - After generation
 - Custom actions
@@ -220,31 +239,37 @@ npm init @nesalia/templates my-app --from ./local-template
 ### 1. Local vs Remote Templates
 
 **Option A: Embedded Templates**
+
 - Faster execution
 - Simpler distribution
 - Easier versioning
 
 **Option B: Separate Packages**
+
 - More modular
 - Extensible by community
 - Independent updates
 
 **Option C: Hybrid**
+
 - Core templates embedded
 - External templates supported
 
 ### 2. Generation Mode
 
 **Option A: Simple File Copy**
+
 - Simple, rigid
 - Fast for basic templates
 
 **Option B: Template Engine (Handlebars, EJS)**
+
 - More flexible
 - Variable substitution
 - Conditional logic
 
 **Option C: Programmatic Generation**
+
 - Most powerful
 - More complex
 - Full control
@@ -268,26 +293,31 @@ npm init @nesalia/templates my-app --from ./local-template
 ### DX Principles
 
 #### Minimalism
+
 - Single entry point: `npm init @nesalia/templates`
 - Smart defaults (context detection)
 - Flags for power users
 
 #### Transparency
+
 - Preview changes before confirmation
 - Clear logging (configurable verbosity)
 - Rollback on error
 
 #### Speed
+
 - Local templates (no unnecessary network calls)
 - Optimized dependency installation
 - Intelligent caching
 
 #### Extensibility
+
 - API for custom templates
 - Complete documentation
 - Template examples
 
 #### Developer-Friendly
+
 - Clear prompts with sensible defaults
 - Input validation
 - Useful error messages

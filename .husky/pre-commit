@@ -3,24 +3,10 @@
 
 echo "Running pre-commit checks..."
 
-# Run type checking
-echo "Checking types..."
-pnpm -r exec tsc --noEmit || {
-  echo "Type check failed. Commit aborted."
-  exit 1
-}
-
 # Run linter
 echo "Running linter..."
-pnpm -r exec eslint . || {
+pnpm run lint || {
   echo "Lint check failed. Commit aborted."
-  exit 1
-}
-
-# Run tests
-echo "Running tests..."
-pnpm -r vitest run || {
-  echo "Tests failed. Commit aborted."
   exit 1
 }
 

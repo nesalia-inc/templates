@@ -1,0 +1,83 @@
+name: Marty Issue Response
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  respond:
+    # Trigger only when @martyy-code is mentioned
+    if: contains(github.event.comment.body, '@martyy-code')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 # Fast checkout, only latest commit
+
+      - name: Generate Marty token
+        id: marty-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.MARTY_APP_ID }}
+          private-key: ${{ secrets.MARTY_APP_PRIVATE_KEY }}
+
+      - name: Marty Responds to Comment
+        uses: nesalia-inc/marty-action@1.0.0
+        with:
+          github_token: ${{ steps.marty-token.outputs.token }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+            COMMENT AUTHOR: ${{ github.event.comment.user.login }}
+            COMMENT: ${{ github.event.comment.body }}
+
+            You are Marty, mentioned in an issue comment.
+
+            ## Your Task
+
+            1. Read the ENTIRE issue history (title, body, all previous comments)
+            2. Understand the full context and current state of discussion
+            3. Formulate your intelligent response
+            4. If someone asks questions, answer them clearly
+            5. If technical discussion, provide helpful insights
+            6. If implementation is discussed, offer to help implement when ready
+
+            ## ⚠️ CRITICAL: POST YOUR RESPONSE
+
+            After formulating your response, you MUST post it by using the Bash tool to execute:
+
+            ```bash
+            gh issue comment $ISSUE_NUMBER --body "Your response here"
+            ```
+
+            **IMPORTANT:**
+            - Do NOT just formulate your response internally
+            - You MUST USE the Bash tool to run the gh issue comment command
+            - Replace "Your response here" with your actual response text
+            - This is how your response appears on the GitHub issue
+
+            ## Important Guidelines
+
+            - Be concise but thorough
+            - Reference specific code or files when helpful
+            - Ask clarifying questions if something is unclear
+            - Be friendly and professional
+            - Don't mention that you're an AI (just be helpful)
+
+          claude_args: |
+            --allowedTools "Bash(gh:*),Read"
+            --max-turns 8
+
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic,
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_API_KEY: '' # Important: Must be explicitly empty
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.5

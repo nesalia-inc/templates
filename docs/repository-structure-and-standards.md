@@ -54,12 +54,14 @@ This document defines the repository structure, tooling, and development standar
 We use **pnpm** as our package manager for its efficiency and strict handling of dependencies.
 
 **Why pnpm?**
+
 - Fast installation times
 - Disk space efficient (uses hard links)
 - Strict dependency handling (no phantom dependencies)
 - Built-in workspace support
 
 **Workspace Configuration** (`pnpm-workspace.yaml`):
+
 ```yaml
 packages:
   - 'packages/*'
@@ -67,6 +69,7 @@ packages:
 ```
 
 **Common Commands:**
+
 ```bash
 # Install dependencies
 pnpm install
@@ -87,6 +90,7 @@ pnpm -r test
 ### Code Formatting: Prettier
 
 **Configuration** (`.prettierrc.json`):
+
 ```json
 {
   "semi": true,
@@ -101,6 +105,7 @@ pnpm -r test
 ```
 
 **Ignore patterns** (`.prettierignore`):
+
 ```
 node_modules/
 dist/
@@ -113,6 +118,7 @@ pnpm-lock.yaml
 ### Linting: ESLint
 
 **Configuration** (`.eslint.config.js`):
+
 ```javascript
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
@@ -147,6 +153,7 @@ export default tseslint.config(
 ### Type Checking: TypeScript
 
 **Root Configuration** (`tsconfig.json`):
+
 ```json
 {
   "compilerOptions": {
@@ -167,6 +174,7 @@ export default tseslint.config(
 ```
 
 **Package-specific Configuration** (`packages/*/tsconfig.json`):
+
 ```json
 {
   "extends": "../../tsconfig.json",
@@ -183,6 +191,7 @@ export default tseslint.config(
 ### Testing: Vitest
 
 **Workspace Configuration** (`vitest.workspace.ts`):
+
 ```typescript
 import { defineWorkspace } from 'vitest/config';
 
@@ -193,6 +202,7 @@ export default defineWorkspace([
 ```
 
 **Package Configuration** (`packages/*/vitest.config.ts`):
+
 ```typescript
 import { defineConfig } from 'vitest/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -214,6 +224,7 @@ export default defineConfig({
 ### Version Management: Changesets
 
 **Configuration** (`.changeset/config.json`):
+
 ```json
 {
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
@@ -229,6 +240,7 @@ export default defineConfig({
 ```
 
 **Usage:**
+
 ```bash
 # Add a changeset for your changes
 pnpm changeset
@@ -243,6 +255,7 @@ pnpm changeset publish
 ### Git Hooks: Husky
 
 **Configuration:**
+
 ```bash
 # Initialize Husky
 pnpm exec husky init
@@ -270,6 +283,7 @@ Our pre-commit hooks **MUST** pass before any commit can be made. This ensures t
 ### Pre-commit Hook Implementation
 
 **File:** `.husky/pre-commit`
+
 ```bash
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -312,27 +326,24 @@ echo "All checks passed! Proceeding with commit..."
 For better performance on large repositories, we can use `lint-staged`:
 
 **Installation:**
+
 ```bash
 pnpm -D add lint-staged
 ```
 
 **Configuration** (`package.json`):
+
 ```json
 {
   "lint-staged": {
-    "*.{ts,js}": [
-      "prettier --write",
-      "eslint --fix",
-      "tsc --noEmit"
-    ],
-    "*.{json,md}": [
-      "prettier --write"
-    ]
+    "*.{ts,js}": ["prettier --write", "eslint --fix", "tsc --noEmit"],
+    "*.{json,md}": ["prettier --write"]
   }
 }
 ```
 
 **Updated Pre-commit Hook:**
+
 ```bash
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -410,12 +421,14 @@ main (protected)
 ### Setting Up Development Environment
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repo-url>
    cd <repo-dir>
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
@@ -428,6 +441,7 @@ main (protected)
 ### Making Changes
 
 1. **Create a short-lived feature branch:**
+
    ```bash
    # Naming convention: feature/, fix/, chore/, docs/
    git checkout -b feature/my-feature
@@ -436,6 +450,7 @@ main (protected)
 2. **Make your changes**
 
 3. **Run checks locally:**
+
    ```bash
    # Type check
    pnpm -r exec tsc --noEmit
@@ -451,23 +466,29 @@ main (protected)
    ```
 
 4. **Add a changeset (REQUIRED for all changes):**
+
    ```bash
    pnpm changeset
    ```
-   *Note: Every PR must include a changeset. PRs without changesets will be rejected.*
+
+   _Note: Every PR must include a changeset. PRs without changesets will be rejected._
 
 5. **Commit your changes:**
+
    ```bash
    git add .
    git commit -m "feat: add my feature"
    ```
-   *Note: Pre-commit hooks will automatically run.*
+
+   _Note: Pre-commit hooks will automatically run._
 
 6. **Push and create PR:**
+
    ```bash
    git push origin feature/my-feature
    ```
-   *Note: GitHub will create a temporary `ci/verify-<sha>` branch to run all CI checks.*
+
+   _Note: GitHub will create a temporary `ci/verify-<sha>` branch to run all CI checks._
 
 7. **Wait for CI verification:**
    - All status checks must pass
@@ -495,12 +516,14 @@ This is **fully automated** - no manual intervention required.
 #### Branch Lifecycle
 
 1. **Keep branches short-lived** - Aim for < 1 day
+
    ```bash
    # Good: Branch created, worked on, merged same day
    # Bad: Branch that lives for weeks
    ```
 
 2. **Small, focused changes** - One feature per PR
+
    ```bash
    # Good: feature/add-vue-template
    # Bad: feature/multiple-templates-and-refactor
@@ -571,6 +594,7 @@ git push origin feature/my-feature --force-with-lease
 ### Available Scripts
 
 **Root `package.json`:**
+
 ```json
 {
   "scripts": {
@@ -611,6 +635,7 @@ git push origin feature/my-feature --force-with-lease
 - **No skipped tests** - All tests must pass before committing
 
 **Example test structure:**
+
 ```typescript
 import { describe, it, expect } from 'vitest';
 
@@ -646,11 +671,13 @@ pnpm changeset
 ```
 
 This prompts for:
+
 - **Type:** patch | minor | major
 - **Scope:** affected package(s)
 - **Summary:** brief description of changes
 
 **Examples:**
+
 ```bash
 # Fixes
 fix: resolve template loading issue in CLI
@@ -697,6 +724,7 @@ Git tag pushed
 ### Development Workflow with Changesets
 
 1. **During development (on feature branch):**
+
    ```bash
    # Add a changeset for your changes
    pnpm changeset
@@ -706,16 +734,18 @@ Git tag pushed
    ```
 
    **Changeset file format:**
+
    ```markdown
    ---
-   "@nesalia/create": minor
-   "@nesalia/template-react": patch
+   '@nesalia/create': minor
+   '@nesalia/template-react': patch
    ---
 
    Add Vue template support and fix React template issue
    ```
 
 2. **Commit the changeset:**
+
    ```bash
    git add .changeset/
    git commit -m "feat: add Vue template"
@@ -808,11 +838,11 @@ jobs:
 
 The version is automatically determined by the changeset type:
 
-| Changeset Type | Version Bump | Example |
-|----------------|--------------|---------|
-| `patch` | 1.0.0 → 1.0.1 | Bug fixes |
-| `minor` | 1.0.0 → 1.1.0 | New features (backwards compatible) |
-| `major` | 1.0.0 → 2.0.0 | Breaking changes |
+| Changeset Type | Version Bump  | Example                             |
+| -------------- | ------------- | ----------------------------------- |
+| `patch`        | 1.0.0 → 1.0.1 | Bug fixes                           |
+| `minor`        | 1.0.0 → 1.1.0 | New features (backwards compatible) |
+| `major`        | 1.0.0 → 2.0.0 | Breaking changes                    |
 
 **Example:**
 
@@ -860,9 +890,9 @@ Changelogs are automatically generated from changesets and included in:
 
 Configure these secrets in your GitHub repository settings:
 
-| Secret | Description | Required for |
-|--------|-------------|--------------|
-| `NPM_TOKEN` | npm automation token | Publishing to npm |
+| Secret         | Description                  | Required for      |
+| -------------- | ---------------------------- | ----------------- |
+| `NPM_TOKEN`    | npm automation token         | Publishing to npm |
 | `GITHUB_TOKEN` | GitHub token (auto-provided) | Creating releases |
 
 **Creating an NPM Token:**
@@ -883,12 +913,12 @@ When a PR is created, GitHub automatically creates a temporary branch `ci/verify
 
 ```yaml
 Required checks:
-  - typecheck     # TypeScript compilation
-  - lint          # ESLint rules
-  - format:check  # Prettier formatting
-  - test          # Vitest tests
-  - build         # Build all packages
-  - changesets    # PR has changeset
+  - typecheck # TypeScript compilation
+  - lint # ESLint rules
+  - format:check # Prettier formatting
+  - test # Vitest tests
+  - build # Build all packages
+  - changesets # PR has changeset
 ```
 
 **CI Workflow** (`.github/workflows/ci.yml`):
