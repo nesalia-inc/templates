@@ -5,6 +5,6 @@
  * This is a dummy version - UX/DX is final but no actual project creation
  */
 
-import { run } from '../src/index.js';
+import { run } from '../dist/index.js';
 
 run(process.argv);

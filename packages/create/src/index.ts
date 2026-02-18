@@ -4,6 +4,8 @@
  * UX/DX is final but actual project creation is not implemented yet
  */
 
+import enquirer from 'enquirer';
+
 const TEMPLATES = [
   { id: 'basic', name: 'Basic', description: 'Minimal project setup' },
   { id: 'react', name: 'React', description: 'React with Vite' },
@@ -67,11 +69,10 @@ ${TEMPLATES.map((t) => `  ${t.id.padEnd(10)} ${t.description}`).join('\n')}
 function showTemplates(): void {
   console.log('Available templates:');
   console.log('');
-  TEMPLATES.forEach((t) => {
-    console.log(`  ${t.id.padEnd(10)} - ${t.description}`);
+  TEMPLATES.forEach((t, i) => {
+    console.log(`  ${(i + 1).toString().padEnd(2)}. ${t.id.padEnd(10)} - ${t.description}`);
   });
   console.log('');
-  console.log('Use --template <name> to select a template');
 }
 
 function showWelcome(projectName: string, template?: string): void {
@@ -83,7 +84,8 @@ function showWelcome(projectName: string, template?: string): void {
   console.log('');
   console.log(`Project name: ${projectName}`);
   if (template) {
-    console.log(`Template: ${template}`);
+    const templateInfo = TEMPLATES.find((t) => t.id === template);
+    console.log(`Template: ${templateInfo?.name || template}`);
   } else {
     console.log('Template: (not selected)');
   }
@@ -92,7 +94,7 @@ function showWelcome(projectName: string, template?: string): void {
   console.log('');
 }
 
-export function run(args: string[]): void {
+export async function run(args: string[]): Promise<void> {
   const { projectName, options } = parseArgs(args);
 
   if (options.help) {
@@ -105,25 +107,55 @@ export function run(args: string[]): void {
     return;
   }
 
-  if (!projectName) {
-    console.error('Error: Project name is required');
-    console.log('');
-    console.log('Usage: npx @nesalia/create <project-name> [options]');
-    console.log('Run --help for more information');
-    process.exit(1);
+  let finalProjectName = projectName;
+  let finalTemplate = options.template;
+
+  console.log('');
+  console.log('┌─────────────────────────────────────────────┐');
+  console.log('│  @nesalia/create                           │');
+  console.log('│  Template Registry                         │');
+  console.log('└─────────────────────────────────────────────┘');
+  console.log('');
+
+  if (!finalProjectName) {
+    const response = await enquirer.prompt<{ name: string }>({
+      type: 'input',
+      name: 'name',
+      message: 'Project name:',
+      validate: (value: string) => {
+        if (!value.trim()) {
+          return 'Please enter a project name.';
+        }
+        return true;
+      },
+    });
+    finalProjectName = response.name;
   }
 
-  if (options.template && !TEMPLATES.find((t) => t.id === options.template)) {
-    console.error(`Error: Unknown template "${options.template}"`);
+  if (!finalTemplate) {
+    const response = await enquirer.prompt<{ template: string }>({
+      type: 'select',
+      name: 'template',
+      message: 'Select a template:',
+      choices: TEMPLATES.map((t) => ({
+        name: t.id,
+        message: `${t.name} - ${t.description}`,
+      })),
+      initial: 0,
+    } as any);
+    finalTemplate = response.template;
+  }
+
+  if (finalTemplate && !TEMPLATES.find((t) => t.id === finalTemplate)) {
+    console.error(`Error: Unknown template "${finalTemplate}"`);
     console.log('');
     console.log('Available templates:');
     TEMPLATES.forEach((t) => {
       console.log(`  ${t.id}`);
     });
     console.log('');
-    console.log('Use --list to see all templates');
     process.exit(1);
   }
 
-  showWelcome(projectName, options.template ?? undefined);
+  showWelcome(finalProjectName, finalTemplate);
 }

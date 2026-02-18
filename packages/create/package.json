@@ -1,6 +1,6 @@
 {
   "name": "@nesalia/create",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Create nesalia projects",
   "license": "MIT",
   "type": "module",
@@ -12,7 +12,9 @@
     "build": "tsc",
     "test": "vitest"
   },
-  "dependencies": {},
+  "dependencies": {
+    "enquirer": "^2.4.1"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
