@@ -1,5 +1,20 @@
 # @nesalia/create
 
+## 0.6.0
+
+### Minor Changes
+
+- 2b3cdb1: Add complete cli-py template with variable substitution
+- 8455d3e: Copy templates during prepublish so they are included in npm package
+- 3c2e6c5: Implement project creation from template
+- 1017280: Add --name flag to CLI
+
+### Patch Changes
+
+- 328b7d5: Allow current directory as project target with "."
+- 4dda252: Fix review comments: path traversal, bounds checking, dependencies
+- d24f89e: Fix templates path when running via npx
+
 ## 0.5.1
 
 ### Patch Changes
