@@ -70,7 +70,8 @@ async function createProject(projectName: string, templateId: string): Promise<v
   // Check for path traversal attacks
   const resolvedTargetDir = path.resolve(cwd, projectName);
   const resolvedCwd = path.resolve(cwd);
-  if (!resolvedTargetDir.startsWith(resolvedCwd)) {
+  const relativePath = path.relative(resolvedCwd, resolvedTargetDir);
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
     console.error('Error: Invalid project name. Path traversal detected.');
     process.exit(1);
   }
@@ -136,9 +137,9 @@ function parseArgs(args: string[]): { projectName?: string; options: Options } {
       options.help = true;
     } else if (arg === '--list' || arg === '-l') {
       options.list = true;
-    } else if (arg === '--template' || arg === '-t') {
+    } else if ((arg === '--template' || arg === '-t') && i + 1 < argv.length) {
       options.template = argv[++i];
-    } else if (arg === '--name' || arg === '-n') {
+    } else if ((arg === '--name' || arg === '-n') && i + 1 < argv.length) {
       options.name = argv[++i];
     } else if (!arg.startsWith('-')) {
       projectName = arg;
