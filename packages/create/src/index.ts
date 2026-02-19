@@ -19,6 +19,7 @@ interface Options {
   template?: string;
   list?: boolean;
   help?: boolean;
+  name?: string;
 }
 
 async function copyDir(
@@ -113,9 +114,16 @@ function parseArgs(args: string[]): { projectName?: string; options: Options } {
       options.list = true;
     } else if (arg === '--template' || arg === '-t') {
       options.template = argv[++i];
+    } else if (arg === '--name' || arg === '-n') {
+      options.name = argv[++i];
     } else if (!arg.startsWith('-')) {
       projectName = arg;
     }
+  }
+
+  // Use --name if provided, otherwise use positional argument
+  if (!projectName && options.name) {
+    projectName = options.name;
   }
 
   return { projectName, options };
@@ -129,8 +137,10 @@ function showHelp(): void {
 Usage:
   npm init @nesalia/create <project-name> [options]
   npx @nesalia/create <project-name> [options]
+  npx @nesalia/create --name <project-name> [options]
 
 Options:
+  -n, --name <name>       Project name
   -t, --template <name>   Template to use (cli-py)
   -l, --list               List available templates
   -h, --help               Show this help message
@@ -138,7 +148,7 @@ Options:
 Examples:
   npm init @nesalia/create my-cli
   npm init @nesalia/create my-cli --template cli-py
-  npx @nesalia/create my-cli --template cli-py
+  npx @nesalia/create --name my-cli --template cli-py
 
 Templates:
 ${TEMPLATES.map(t => `  ${t.id.padEnd(10)} ${t.description}`).join('\n')}
