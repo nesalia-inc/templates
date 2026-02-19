@@ -5,13 +5,15 @@
 import enquirer from 'enquirer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const TEMPLATES = [
   { id: 'cli-py', name: 'CLI Python', description: 'Python CLI with typer and uv' },
 ];
 
-// Get the templates directory (relative to the package)
-const TEMPLATES_DIR = path.resolve(process.cwd(), '../templates');
+// Get the templates directory (relative to the package directory)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEMPLATES_DIR = path.resolve(__dirname, '../templates');
 
 interface Options {
   template?: string;

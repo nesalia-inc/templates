@@ -1,12 +1,16 @@
 {
   "name": "@nesalia/create",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Create nesalia projects",
   "license": "MIT",
   "type": "module",
   "bin": {
     "create-nesalia": "./bin/create.js"
   },
+  "files": [
+    "dist",
+    "templates"
+  ],
   "scripts": {
     "dev": "tsx bin/create.js",
     "build": "tsc",
