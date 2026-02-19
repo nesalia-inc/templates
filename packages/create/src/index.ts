@@ -25,17 +25,23 @@ interface Options {
 async function copyDir(
   src: string,
   dest: string,
-  variables: Record<string, string>
+  variables: Record<string, string>,
+  packageName?: string
 ): Promise<void> {
   await fs.mkdir(dest, { recursive: true });
   const entries = await fs.readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
+
+    // Handle directory renaming: src/my_cli -> src/{packageName}
+    let destPath = path.join(dest, entry.name);
+    if (entry.isDirectory() && entry.name === 'my_cli' && packageName) {
+      destPath = path.join(dest, packageName);
+    }
 
     if (entry.isDirectory()) {
-      await copyDir(srcPath, destPath, variables);
+      await copyDir(srcPath, destPath, variables, packageName);
     } else {
       // Read file content, replace variables, write to destination
       let content = await fs.readFile(srcPath, 'utf-8');
@@ -50,6 +56,24 @@ async function copyDir(
 async function createProject(projectName: string, templateId: string): Promise<void> {
   const templateDir = path.join(TEMPLATES_DIR, `template-${templateId}`);
   const targetDir = path.join(process.cwd(), projectName);
+  const cwd = process.cwd();
+
+  // Validate project name for Python package naming (snake_case)
+  const pythonPackageName = projectName === '.' ? 'my-cli' : projectName;
+  if (!/^[a-z][a-z0-9_]*$/.test(pythonPackageName)) {
+    console.error(
+      `Error: Invalid project name "${pythonPackageName}". Python package names must be lowercase with underscores (e.g., my_cli, my_cli_app).`
+    );
+    process.exit(1);
+  }
+
+  // Check for path traversal attacks
+  const resolvedTargetDir = path.resolve(cwd, projectName);
+  const resolvedCwd = path.resolve(cwd);
+  if (!resolvedTargetDir.startsWith(resolvedCwd)) {
+    console.error('Error: Invalid project name. Path traversal detected.');
+    process.exit(1);
+  }
 
   // Check if template exists
   try {
@@ -78,14 +102,14 @@ async function createProject(projectName: string, templateId: string): Promise<v
 
   // Variables for template substitution
   const variables: Record<string, string> = {
-    name: projectName === '.' ? 'my-cli' : projectName,
+    name: pythonPackageName,
   };
 
   // Copy template files with variable substitution
   console.log(
     `Creating project "${projectName === '.' ? 'current directory' : projectName}" from template "${templateId}"...`
   );
-  await copyDir(templateDir, targetDir, variables);
+  await copyDir(templateDir, targetDir, variables, pythonPackageName);
 
   console.log('');
   console.log('✓ Project created successfully!');
