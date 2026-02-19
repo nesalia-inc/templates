@@ -1,22 +1,78 @@
 /**
  * @nesalia/create - CLI for creating nesalia projects
- *
- * UX/DX is final but actual project creation is not implemented yet
  */
 
 import enquirer from 'enquirer';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 const TEMPLATES = [
-  { id: 'basic', name: 'Basic', description: 'Minimal project setup' },
-  { id: 'react', name: 'React', description: 'React with Vite' },
-  { id: 'vue', name: 'Vue', description: 'Vue 3 + Vite' },
-  { id: 'nextjs', name: 'Next.js', description: 'Next.js fullstack' },
+  { id: 'cli-py', name: 'CLI Python', description: 'Python CLI with typer and uv' },
 ];
+
+// Get the templates directory (relative to the package)
+const TEMPLATES_DIR = path.resolve(process.cwd(), '../templates');
 
 interface Options {
   template?: string;
   list?: boolean;
   help?: boolean;
+}
+
+async function copyDir(src: string, dest: string): Promise<void> {
+  await fs.mkdir(dest, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDir(srcPath, destPath);
+    } else {
+      await fs.copyFile(srcPath, destPath);
+    }
+  }
+}
+
+async function createProject(projectName: string, templateId: string): Promise<void> {
+  const templateDir = path.join(TEMPLATES_DIR, `template-${templateId}`);
+  const targetDir = path.join(process.cwd(), projectName);
+
+  // Check if project directory already exists
+  try {
+    await fs.access(targetDir);
+    console.error(`Error: Directory "${projectName}" already exists.`);
+    process.exit(1);
+  } catch {
+    // Directory doesn't exist, which is what we want
+  }
+
+  // Check if template exists
+  try {
+    await fs.access(templateDir);
+  } catch {
+    console.error(`Error: Template "${templateId}" not found.`);
+    console.log('');
+    console.log('Available templates:');
+    TEMPLATES.forEach(t => {
+      console.log(`  ${t.id}`);
+    });
+    console.log('');
+    process.exit(1);
+  }
+
+  // Copy template files
+  console.log(`Creating project "${projectName}" from template "${templateId}"...`);
+  await copyDir(templateDir, targetDir);
+
+  console.log('');
+  console.log('✓ Project created successfully!');
+  console.log('');
+  console.log('Next steps:');
+  console.log(`  cd ${projectName}`);
+  console.log('  # Add your CLI code');
+  console.log('');
 }
 
 function parseArgs(args: string[]): { projectName?: string; options: Options } {
@@ -49,18 +105,18 @@ function showHelp(): void {
 @nesalia/create - Create nesalia projects
 
 Usage:
-  npm init @nesalia/templates <project-name> [options]
+  npm init @nesalia/create <project-name> [options]
   npx @nesalia/create <project-name> [options]
 
 Options:
-  -t, --template <name>   Template to use (basic, react, vue, nextjs)
+  -t, --template <name>   Template to use (cli-py)
   -l, --list               List available templates
   -h, --help               Show this help message
 
 Examples:
-  npm init @nesalia/templates my-app
-  npm init @nesalia/templates my-app --template react
-  npx @nesalia/create my-app --template react --typescript
+  npm init @nesalia/create my-cli
+  npm init @nesalia/create my-cli --template cli-py
+  npx @nesalia/create my-cli --template cli-py
 
 Templates:
 ${TEMPLATES.map(t => `  ${t.id.padEnd(10)} ${t.description}`).join('\n')}
@@ -74,25 +130,6 @@ function showTemplates(): void {
   TEMPLATES.forEach((t, i) => {
     console.log(`  ${(i + 1).toString().padEnd(2)}. ${t.id.padEnd(10)} - ${t.description}`);
   });
-  console.log('');
-}
-
-function showWelcome(projectName: string, template?: string): void {
-  console.log('');
-  console.log('┌─────────────────────────────────────────────┐');
-  console.log('│  @nesalia/create                           │');
-  console.log('│  Template Registry                         │');
-  console.log('└─────────────────────────────────────────────┘');
-  console.log('');
-  console.log(`Project name: ${projectName}`);
-  if (template) {
-    const templateInfo = TEMPLATES.find(t => t.id === template);
-    console.log(`Template: ${templateInfo?.name || template}`);
-  } else {
-    console.log('Template: (not selected)');
-  }
-  console.log('');
-  console.log('(DUMMY MODE - No actual project will be created)');
   console.log('');
 }
 
@@ -144,7 +181,7 @@ export async function run(args: string[]): Promise<void> {
         message: `${t.name} - ${t.description}`,
       })),
       initial: 0,
-    } as any);
+    });
     finalTemplate = response.template;
   }
 
@@ -159,5 +196,5 @@ export async function run(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  showWelcome(finalProjectName, finalTemplate);
+  await createProject(finalProjectName, finalTemplate);
 }
