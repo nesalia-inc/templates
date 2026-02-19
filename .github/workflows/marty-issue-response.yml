@@ -11,8 +11,10 @@ permissions:
 
 jobs:
   respond:
-    # Trigger only when @martyy-code is mentioned
-    if: contains(github.event.comment.body, '@martyy-code')
+    # Trigger only when @martyy-code is mentioned but NOT for implementation requests
+    if: |
+      contains(github.event.comment.body, '@martyy-code') &&
+      !contains(github.event.comment.body, 'implement')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

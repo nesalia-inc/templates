@@ -1,0 +1,103 @@
+name: Marty PR Discussion
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  discuss:
+    if: contains(github.event.comment.body, '@martyy-code')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check if comment is on a PR
+        id: check-pr
+        run: |
+          # Check if this issue is a PR
+          if [ -z "${{ github.event.issue.pull_request.html_url }}" ]; then
+            echo "This is not a PR, skipping"
+            echo "is_pr=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          echo "is_pr=true" >> $GITHUB_OUTPUT
+        shell: bash
+        continue-on-error: true
+
+      - name: Generate Marty token
+        if: steps.check-pr.outputs.is_pr == 'true'
+        id: marty-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.MARTY_APP_ID }}
+          private-key: ${{ secrets.MARTY_APP_PRIVATE_KEY }}
+
+      - name: Get PR number
+        if: steps.check-pr.outputs.is_pr == 'true'
+        id: pr-info
+        run: |
+          # Handle both issue_comment on PR and pull_request_review_comment events
+          if [ "${{ github.event.issue.pull_request.number }}" != "" ]; then
+            PR_NUMBER="${{ github.event.issue.pull_request.number }}"
+          else
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Marty Discusses in PR
+        if: steps.check-pr.outputs.is_pr == 'true'
+        uses: nesalia-inc/marty-action@1.0.0
+        with:
+          github_token: ${{ steps.marty-token.outputs.token }}
+          allowed_bots: '*'
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ steps.pr-info.outputs.pr_number }}
+            COMMENT AUTHOR: ${{ github.event.comment.user.login }}
+            COMMENT: ${{ github.event.comment.body }}
+
+            You are Marty, an AI coding assistant discussing in a Pull Request.
+
+            ## Your Task
+
+            1. Read the PR details (title, description, changed files)
+            2. Understand the context of the question/comment
+            3. Review the relevant code if needed
+            4. Provide a helpful, technical response
+
+            ## Discussion Guidelines
+
+            - Be concise but thorough
+            - Reference specific code lines when helpful
+            - Ask clarifying questions if something is unclear
+            - Suggest improvements or alternatives when relevant
+            - Be friendly and professional
+            - Don't mention that you're an AI
+
+            ## Important
+
+            - Use Read tool to examine code files
+            - Use Bash with gh commands to get PR info if needed
+
+          claude_args: |
+            --allowedTools "Bash(*),Read,Write,Edit,WebFetch"
+            --max-turns 30
+
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.5

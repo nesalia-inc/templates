@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document defines the repository structure, tooling, and development standards for the `@nesalia/templates` monorepo. These standards are strictly enforced to maintain code quality and consistency across all packages.
+This document defines the repository structure, tooling, and development standards for the `@nesalia/create` monorepo. These standards are strictly enforced to maintain code quality and consistency across all packages.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ This document defines the repository structure, tooling, and development standar
 ## Repository Structure
 
 ```
-@nesalia/templates/
+@nesalia/create/
 ├── .changeset/              # Changeset configurations
 │   └── config.json
 ├── .github/

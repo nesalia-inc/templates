@@ -1,4 +1,4 @@
-# @nesalia/templates
+# @nesalia/create
 
 Template registry for creating nesalia projects.
 

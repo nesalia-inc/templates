@@ -1,8 +1,8 @@
-# @nesalia/templates - Template Registry Analysis
+# @nesalia/create - Template Registry Analysis
 
 ## Executive Summary
 
-This document outlines the analysis and proposed Developer Experience (DX) for creating an npm-based template registry under the `@nesalia/templates` scope. The goal is to define the desired DX and understand implementation requirements without writing any code.
+This document outlines the analysis and proposed Developer Experience (DX) for creating an npm-based template registry under the `@nesalia/create` scope. The goal is to define the desired DX and understand implementation requirements without writing any code.
 
 ## Table of Contents
 
@@ -62,7 +62,7 @@ npm init @usr         → npm exec @usr/create
 ### Architecture
 
 ```
-@nesalia/templates (npm scope)
+@nesalia/create (npm scope)
 ├── create/                      # Main CLI
 │   └── create-nesalia           # Entry point
 ├── template-*/                  # Individual templates
@@ -78,25 +78,25 @@ npm init @usr         → npm exec @usr/create
 #### 1. Simplest Creation
 
 ```bash
-npm init @nesalia/templates my-app
+npm init @nesalia/create my-app
 ```
 
 #### 2. With Template Selection
 
 ```bash
-npm init @nesalia/templates my-app --template react
+npm init @nesalia/create my-app --template react
 ```
 
 #### 3. With Advanced Options
 
 ```bash
-npm init @nesalia/templates my-app --template react --typescript --tailwind
+npm init @nesalia/create my-app --template react --typescript --tailwind
 ```
 
 #### 4. List Available Templates
 
 ```bash
-npm init @nesalia/templates --list
+npm init @nesalia/create --list
 ```
 
 ### Key DX Characteristics
@@ -104,7 +104,7 @@ npm init @nesalia/templates --list
 #### Discovery
 
 ```bash
-$ npm init @nesalia/templates --help
+$ npm init @nesalia/create --help
 
 ? Available templates:
   • basic         - Minimal project setup
@@ -118,7 +118,7 @@ $ npm init @nesalia/templates --help
 #### Interactive Prompts
 
 ```bash
-$ npm init @nesalia/templates my-app
+$ npm init @nesalia/create my-app
 
 ? Select template: ›
   ◯ basic
@@ -147,10 +147,10 @@ Next steps:
 
 ```bash
 # External template
-npm init @nesalia/templates my-app --from @mycompany/template-legacy
+npm init @nesalia/create my-app --from @mycompany/template-legacy
 
 # Local template
-npm init @nesalia/templates my-app --from ./local-template
+npm init @nesalia/create my-app --from ./local-template
 ```
 
 ---
@@ -294,7 +294,7 @@ npm init @nesalia/templates my-app --from ./local-template
 
 #### Minimalism
 
-- Single entry point: `npm init @nesalia/templates`
+- Single entry point: `npm init @nesalia/create`
 - Smart defaults (context detection)
 - Flags for power users
 

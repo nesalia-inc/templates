@@ -1,0 +1,225 @@
+name: Marty Issue Implementation
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  implement:
+    if: |
+      contains(github.event.comment.body, '@martyy-code') &&
+      contains(github.event.comment.body, 'implement')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Generate Marty token
+        id: marty-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.MARTY_APP_ID }}
+          private-key: ${{ secrets.MARTY_APP_PRIVATE_KEY }}
+
+      - name: Validate Issue
+        id: validate-issue
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+
+          # Check if issue is still open
+          ISSUE_STATE=$(gh issue view $ISSUE_NUMBER --json state --jq '.state')
+          if [ "$ISSUE_STATE" != "OPEN" ]; then
+            echo "❌ Issue is not open (state: $ISSUE_STATE)"
+            gh issue comment $ISSUE_NUMBER --body "❌ Cannot implement: issue is not open."
+            exit 1
+          fi
+
+          # Check if issue has appropriate labels
+          LABELS=$(gh issue view $ISSUE_NUMBER --json labels --jq '.labels[].name')
+          if [ -z "$LABELS" ]; then
+            echo "⚠️  Issue has no labels - proceeding anyway"
+          else
+            echo "✓ Issue has labels: $LABELS"
+          fi
+
+          # Store branch name for potential rollback
+          BRANCH_NAME="marty/issue-${ISSUE_NUMBER}-$(date +%s)"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "✓ Validation complete"
+        env:
+          GH_TOKEN: ${{ steps.marty-token.outputs.token }}
+
+      - name: Marty Implements Issue
+        id: marty-implement
+        timeout-minutes: 30
+        uses: nesalia-inc/marty-action@1.0.0
+        with:
+          github_token: ${{ steps.marty-token.outputs.token }}
+          allowed_bots: '*'
+          prompt: |
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+            COMMENT AUTHOR: ${{ github.event.comment.user.login }}
+            COMMENT: ${{ github.event.comment.body }}
+            BRANCH PREFIX: marty/issue-${{ github.event.issue.number }}
+
+            You are Marty, an AI coding assistant.
+
+            ## Your Task
+
+            1. Read the ENTIRE issue history (title, body, all previous comments)
+            2. Understand what needs to be implemented
+            3. Implement the feature/fix described in the issue
+            4. Create a Pull Request with your implementation
+            5. Add appropriate tests if needed
+
+            ## Implementation Guidelines
+
+            - Be concise but thorough
+            - Follow the project's coding conventions
+            - Write clear commit messages
+            - Create a PR with a descriptive title and body
+            - Reference the issue in the PR description
+
+            ## Branch Naming
+
+            IMPORTANT: Your branch name MUST start with: marty/issue-${{ github.event.issue.number }}
+            Example: marty/issue-42-add-auth-feature
+
+            This is required for rollback functionality.
+
+            ## Important
+
+            - Use Bash to run git commands
+            - Use Write/Edit tools to modify files
+            - Create a branch for your changes
+            - Push the branch and create a PR using gh commands
+            - AFTER creating the PR, print the PR number in this format: PR_CREATED: <number>
+
+          claude_args: |
+            --allowedTools "Bash(*),Read,Write,Edit,WebFetch"
+            --max-turns 100
+
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.5
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.5
+
+      - name: Get PR Number
+        id: get-pr
+        if: success()
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+
+          # Try to find PR created by marty-action
+          # Look for PRs from branches matching the pattern
+          PR_NUMBER=$(gh pr list \
+            --head "marty/issue-${ISSUE_NUMBER}" \
+            --json number \
+            --jq '.[0].number' \
+            2>/dev/null || echo "")
+
+          if [ -n "$PR_NUMBER" ]; then
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "✓ Found PR: #$PR_NUMBER"
+          else
+            echo "⚠️  No PR found - checking logs"
+            # Fallback: try to find any recently created PR
+            PR_NUMBER=$(gh pr list \
+              --limit 5 \
+              --search "sort:created-desc" \
+              --json number,headRefName \
+              --jq ".[] | select(.headRefName | startswith(\"marty/issue-${ISSUE_NUMBER}\")) | .number" \
+              2>/dev/null | head -n1 || echo "")
+
+            if [ -n "$PR_NUMBER" ]; then
+              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+              echo "✓ Found PR via fallback: #$PR_NUMBER"
+            else
+              echo "pr_number=0" >> $GITHUB_OUTPUT
+              echo "⚠️  Could not determine PR number"
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ steps.marty-token.outputs.token }}
+
+      - name: Comment on Issue
+        if: success() && steps.get-pr.outputs.pr_number != 0
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          PR_NUMBER=${{ steps.get-pr.outputs.pr_number }}
+
+          gh issue comment $ISSUE_NUMBER \
+            --body "✅ I've implemented this feature and created PR #${PR_NUMBER}
+
+          **Branch**: \`marty/issue-${ISSUE_NUMBER}\`
+          **Status**: Ready for review
+
+          Please review the PR and merge if everything looks good."
+        env:
+          GH_TOKEN: ${{ steps.marty-token.outputs.token }}
+
+      - name: Handle Implementation Failure
+        if: failure()
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+
+          gh issue comment $ISSUE_NUMBER \
+            --body "❌ Implementation failed. Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+          If this is a recurring issue, please:
+          1. Check the issue requirements are clear
+          2. Verify the issue has appropriate labels
+          3. Try breaking down complex features into smaller issues
+
+          Feel free to ask questions or provide more context."
+        env:
+          GH_TOKEN: ${{ steps.marty-token.outputs.token }}
+
+      - name: Rollback on Failure
+        if: failure() && steps.validate-issue.outputs.branch_name != ''
+        run: |
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+
+          # Try to find and delete any branches created for this issue
+          BRANCHES=$(git ls-remote --heads origin "marty/issue-${ISSUE_NUMBER}*" | awk '{print $2}' | sed 's|refs/heads/||')
+
+          if [ -n "$BRANCHES" ]; then
+            echo "Found branches to cleanup:"
+            echo "$BRANCHES"
+
+            for BRANCH in $BRANCHES; do
+              echo "Deleting branch: $BRANCH"
+              git push origin --delete "$BRANCH" 2>/dev/null || echo "Failed to delete $BRANCH (may not exist)"
+            done
+          else
+            echo "No branches found for cleanup"
+          fi
+
+          # Try to close any open PRs from this workflow
+          PRS=$(gh pr list \
+            --head "marty/issue-${ISSUE_NUMBER}" \
+            --json number \
+            --jq '.[].number' \
+            2>/dev/null || echo "")
+
+          if [ -n "$PRS" ]; then
+            for PR in $PRS; do
+              echo "Closing PR #$PR"
+              gh pr close $PR --comment "Automated closure due to implementation failure" || true
+            done
+          fi
+
+          echo "✓ Rollback complete"
+        env:
+          GH_TOKEN: ${{ steps.marty-token.outputs.token }}

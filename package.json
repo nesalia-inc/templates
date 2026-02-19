@@ -1,9 +1,9 @@
 {
-  "name": "@nesalia/templates",
+  "name": "@nesalia/create",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
-  "description": "Template registry for @nesalia/templates",
+  "description": "Create nesalia projects",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
