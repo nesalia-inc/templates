@@ -1,6 +1,6 @@
 {
   "name": "@nesalia/create",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Create nesalia projects",
   "license": "MIT",
   "type": "module",

@@ -1,5 +1,11 @@
 # @nesalia/create
 
+## 0.7.1
+
+### Patch Changes
+
+- af16a90: Fix templates path in copy script
+
 ## 0.7.0
 
 ### Minor Changes
