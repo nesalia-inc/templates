@@ -1,5 +1,11 @@
 # @nesalia/create
 
+## 0.7.0
+
+### Minor Changes
+
+- 6a72b6b: Add CI workflows and pre-commit to cli-py template
+
 ## 0.6.0
 
 ### Minor Changes
