@@ -1,5 +1,11 @@
 # @nesalia/create
 
+## 0.7.3
+
+### Patch Changes
+
+- 987dd67: Fix bin name for npx compatibility
+
 ## 0.7.2
 
 ### Patch Changes
