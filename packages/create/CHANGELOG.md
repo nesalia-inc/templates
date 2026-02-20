@@ -1,5 +1,11 @@
 # @nesalia/create
 
+## 0.7.2
+
+### Patch Changes
+
+- 666e78e: Include latest templates with CI workflows and pre-commit
+
 ## 0.7.1
 
 ### Patch Changes
