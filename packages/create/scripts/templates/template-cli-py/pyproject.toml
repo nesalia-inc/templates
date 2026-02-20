@@ -1,0 +1,26 @@
+[project]
+name = "{{name}}"
+version = "0.1.0"
+description = "My Python CLI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+{{name}} = "{{name}}.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.4.0",
+    "pytest-cov>=4.0",
+]
+rich = [
+    "rich>=13.0.0",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
