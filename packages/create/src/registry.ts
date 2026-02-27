@@ -2,7 +2,7 @@
  * Template registry - handles fetching templates from npm
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -25,7 +25,7 @@ const LOCAL_TEMPLATES = [
 export async function listTemplates(): Promise<DiscoveredTemplate[]> {
   try {
     // Query npm registry for @nesalia/template-* packages
-    const result = execSync(`npm search @nesalia/template --json --searchlimit=100`, {
+    const result = execFileSync('npm', ['search', '@nesalia/template', '--json', '--searchlimit=100'], {
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024,
     });
@@ -106,7 +106,7 @@ export async function fetchTemplate(templateId: string): Promise<FetchedTemplate
 
   try {
     // Download package using npm pack
-    const packResult = execSync(`npm pack ${packageName} --pack-destination "${tempDir}"`, {
+    const packResult = execFileSync('npm', ['pack', packageName, '--pack-destination', tempDir], {
       encoding: 'utf-8',
     });
 
@@ -118,7 +118,7 @@ export async function fetchTemplate(templateId: string): Promise<FetchedTemplate
     const tgzPath = path.join(tempDir, tgzFile);
 
     // Extract tarball
-    execSync(`tar -xzf "${tgzPath}" -C "${tempDir}"`, { stdio: 'pipe' });
+    execFileSync('tar', ['-xzf', tgzPath, '-C', tempDir], { stdio: 'pipe' });
 
     // Find extracted package directory (usually starts with 'package')
     const entries = await fs.readdir(tempDir);
@@ -197,31 +197,41 @@ async function validateTemplate(
  * Validate file paths to prevent path traversal attacks
  */
 async function validateFilePaths(dir: string): Promise<void> {
-  const entries = await fs.readdir(dir, { withFileTypes: true, recursive: true });
+  // Recursively walk directory and validate each path
+  async function walk(currentDir: string): Promise<void> {
+    const entries = await fs.readdir(currentDir, { withFileTypes: true });
 
-  for (const entry of entries) {
-    // Construct full path properly for both files and directories
-    const fullPath = path.join(dir, entry.name);
+    for (const entry of entries) {
+      // Construct full path - entry.name is relative to currentDir
+      const fullPath = path.join(currentDir, entry.name);
 
-    // Get relative path from extracted directory
-    const relativePath = path.relative(dir, fullPath);
+      // Get relative path from extracted directory
+      const relativePath = path.relative(dir, fullPath);
 
-    // Check for path traversal attempts
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-      throw new Error(`Invalid template: path traversal detected: ${relativePath}`);
-    }
+      // Check for path traversal attempts
+      if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+        throw new Error(`Invalid template: path traversal detected: ${relativePath}`);
+      }
 
-    // Check for suspicious filenames
-    const basename = path.basename(entry.name);
-    if (
-      basename === '.bashrc' ||
-      basename === '.profile' ||
-      basename === '.bash_profile' ||
-      basename.startsWith('.git')
-    ) {
-      throw new Error(`Invalid template: suspicious file: ${basename}`);
+      // Check for suspicious filenames
+      const basename = path.basename(fullPath);
+      if (
+        basename === '.bashrc' ||
+        basename === '.profile' ||
+        basename === '.bash_profile' ||
+        basename.startsWith('.git')
+      ) {
+        throw new Error(`Invalid template: suspicious file: ${basename}`);
+      }
+
+      // Recursively process subdirectories
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      }
     }
   }
+
+  await walk(dir);
 }
 
 /**

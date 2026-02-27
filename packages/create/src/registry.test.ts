@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import {
   listTemplates,
   fetchTemplate,
@@ -12,16 +12,16 @@ import {
   cleanupTemplate,
 } from '../src/registry.js';
 
-// Mock execSync
+// Mock execFileSync
 vi.mock('node:child_process', async () => {
   const actual = await vi.importActual('node:child_process');
   return {
     ...actual,
-    execSync: vi.fn(),
+    execFileSync: vi.fn(),
   };
 });
 
-const mockExecSync = execSync as ReturnType<typeof vi.fn>;
+const mockExecFileSync = execFileSync as ReturnType<typeof vi.fn>;
 
 describe('listTemplates', () => {
   beforeEach(() => {
@@ -39,12 +39,13 @@ describe('listTemplates', () => {
       { name: '@nesalia/template-vue', description: 'Vue - Vue 3 with Vite', version: '1.0.0' },
     ];
 
-    mockExecSync.mockReturnValue(JSON.stringify(mockNpmSearchResult));
+    mockExecFileSync.mockReturnValue(JSON.stringify(mockNpmSearchResult));
 
     const templates = await listTemplates();
 
-    expect(mockExecSync).toHaveBeenCalledWith(
-      expect.stringContaining('npm search @nesalia/template'),
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      'npm',
+      expect.arrayContaining(['search', expect.stringContaining('@nesalia/template')]),
       expect.any(Object)
     );
     expect(templates).toHaveLength(3);
@@ -53,7 +54,7 @@ describe('listTemplates', () => {
   });
 
   it('should fallback to local templates on error', async () => {
-    mockExecSync.mockImplementation(() => {
+    mockExecFileSync.mockImplementation(() => {
       throw new Error('Network error');
     });
 
@@ -86,7 +87,7 @@ describe('hasLocalTemplate', () => {
 
 describe('fetchTemplate', () => {
   it('should throw error for non-existent package', async () => {
-    mockExecSync.mockImplementation(() => {
+    mockExecFileSync.mockImplementation(() => {
       throw new Error('npm error: 404');
     });
 
