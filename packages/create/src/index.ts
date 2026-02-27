@@ -53,8 +53,7 @@ async function copyDir(
 
 async function createProject(
   projectName: string,
-  templateId: string,
-  templates: DiscoveredTemplate[]
+  templateId: string
 ): Promise<void> {
   const cwd = process.cwd();
   const targetDir = path.join(cwd, projectName);
@@ -265,5 +264,5 @@ export async function run(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  await createProject(finalProjectName, finalTemplate, templates);
+  await createProject(finalProjectName, finalTemplate);
 }
