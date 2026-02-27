@@ -10,6 +10,7 @@ import os from 'node:os';
 import type { DiscoveredTemplate, FetchedTemplate, TemplatePackageJson } from './types.js';
 
 const TEMPLATE_SCOPE = '@nesalia/template-';
+const NPM_TIMEOUT = 60000; // 1 minute timeout for npm commands
 
 /**
  * List available templates from npm registry
@@ -20,6 +21,7 @@ export const listTemplates = async (): Promise<DiscoveredTemplate[]> => {
     const result = execFileSync('npm', ['search', '@nesalia/template', '--json', '--searchlimit=100'], {
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024,
+      timeout: NPM_TIMEOUT,
     });
 
     const packages = JSON.parse(result);
@@ -197,6 +199,7 @@ export const fetchTemplate = async (templateId: string): Promise<FetchedTemplate
     // Download package using npm pack
     const packResult = execFileSync('npm', ['pack', packageName, '--pack-destination', tempDir], {
       encoding: 'utf-8',
+      timeout: NPM_TIMEOUT,
     });
 
     // Parse output - filter for .tgz files to handle any warnings
@@ -212,7 +215,10 @@ export const fetchTemplate = async (templateId: string): Promise<FetchedTemplate
     const tgzPath = path.join(tempDir, tgzFile);
 
     // Extract tarball with --strip-components=1 to prevent path traversal
-    execFileSync('tar', ['-xzf', tgzPath, '-C', tempDir, '--strip-components=1'], { stdio: 'pipe' });
+    execFileSync('tar', ['-xzf', tgzPath, '-C', tempDir, '--strip-components=1'], {
+      stdio: 'pipe',
+      timeout: NPM_TIMEOUT,
+    });
 
     // Validate extracted files before using them
     const manifest = await validateTemplate(tempDir, packageName);
