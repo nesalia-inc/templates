@@ -1,38 +1,38 @@
 /**
- * Template registry types and interfaces
+ * Template registry types
  */
 
-export interface NesaliaTemplateMeta {
+export type NesaliaTemplateMeta = {
   id: string;
   displayName: string;
   description: string;
   tags?: string[];
   features?: TemplateFeature[];
-}
+};
 
-export interface TemplateFeature {
+export type TemplateFeature = {
   id: string;
   prompt: string;
   default?: boolean;
-}
+};
 
-export interface TemplatePackageJson {
+export type TemplatePackageJson = {
   name: string;
   version: string;
   nesalia?: NesaliaTemplateMeta;
-}
+};
 
-export interface DiscoveredTemplate {
+export type DiscoveredTemplate = {
   name: string;
   version: string;
   description: string;
   id: string;
   displayName: string;
   tags: string[];
-}
+};
 
-export interface FetchedTemplate {
+export type FetchedTemplate = {
   directory: string;
   tempDirectory: string;
   manifest: TemplatePackageJson;
-}
+};
