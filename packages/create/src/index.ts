@@ -46,7 +46,7 @@ async function copyDir(
       // Read file content, replace variables, write to destination
       let content = await fs.readFile(srcPath, 'utf-8');
       for (const [key, value] of Object.entries(variables)) {
-        content = content.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+        content = content.replaceAll(`{{${key}}}`, value);
       }
       await fs.writeFile(destPath, content);
     }
@@ -92,12 +92,13 @@ async function createProject(
 
   // Determine template source: try remote first, fallback to local
   let templateDir: string;
-  let useLocal = false;
+  let tempDir: string | undefined;
 
   try {
     console.log(`Fetching template "${templateId}" from npm...`);
     const fetched = await fetchTemplate(templateId);
     templateDir = fetched.directory;
+    tempDir = fetched.tempDirectory;
     console.log(`Using template: ${fetched.manifest.nesalia?.displayName || templateId}`);
   } catch {
     // Fallback to local template if remote fetch fails
@@ -114,7 +115,6 @@ async function createProject(
       process.exit(1);
     }
     templateDir = getLocalTemplateDirectory(templateId);
-    useLocal = true;
   }
 
   // Variables for template substitution
@@ -127,8 +127,8 @@ async function createProject(
   await copyDir(templateDir, targetDir, variables, pythonPackageName);
 
   // Cleanup temp directory if remote template was used
-  if (!useLocal) {
-    await cleanupTemplate(path.dirname(templateDir));
+  if (tempDir) {
+    await cleanupTemplate(tempDir);
   }
 
   console.log('');

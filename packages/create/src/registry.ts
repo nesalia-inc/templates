@@ -73,12 +73,32 @@ export async function listTemplates(): Promise<DiscoveredTemplate[]> {
 }
 
 /**
+ * Validate template ID to prevent command injection
+ */
+function validateTemplateId(templateId: string): void {
+  // Only allow alphanumeric, hyphens, and underscores
+  if (!/^[a-zA-Z0-9_-]+$/.test(templateId)) {
+    throw new Error(
+      `Invalid template ID: "${templateId}". Only alphanumeric, hyphens, and underscores allowed.`
+    );
+  }
+}
+
+/**
  * Fetch a template from npm and extract it to a temp directory
  */
 export async function fetchTemplate(templateId: string): Promise<FetchedTemplate> {
+  // Validate input to prevent command injection
+  validateTemplateId(templateId);
+
   const packageName = templateId.startsWith(TEMPLATE_SCOPE)
     ? templateId
     : `${TEMPLATE_SCOPE}${templateId}`;
+
+  // Validate package name format
+  if (!/^@[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(packageName)) {
+    throw new Error(`Invalid package name: "${packageName}"`);
+  }
 
   // Create temp directory
   const tempDir = path.join(os.tmpdir(), `nesalia-template-${Date.now()}`);
@@ -115,6 +135,7 @@ export async function fetchTemplate(templateId: string): Promise<FetchedTemplate
 
     return {
       directory: extractedDir,
+      tempDirectory: tempDir,
       manifest,
     };
   } catch (error) {
@@ -179,7 +200,8 @@ async function validateFilePaths(dir: string): Promise<void> {
   const entries = await fs.readdir(dir, { withFileTypes: true, recursive: true });
 
   for (const entry of entries) {
-    const fullPath = entry.isDirectory() ? path.join(dir, entry.name) : entry.name;
+    // Construct full path properly for both files and directories
+    const fullPath = path.join(dir, entry.name);
 
     // Get relative path from extracted directory
     const relativePath = path.relative(dir, fullPath);

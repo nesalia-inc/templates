@@ -33,5 +33,6 @@ export interface DiscoveredTemplate {
 
 export interface FetchedTemplate {
   directory: string;
+  tempDirectory: string;
   manifest: TemplatePackageJson;
 }
