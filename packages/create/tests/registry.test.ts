@@ -7,8 +7,6 @@ import { execFileSync } from 'node:child_process';
 import {
   listTemplates,
   fetchTemplate,
-  getLocalTemplateDirectory,
-  hasLocalTemplate,
   cleanupTemplate,
 } from '../src/registry.js';
 
@@ -53,35 +51,12 @@ describe('listTemplates', () => {
     expect(templates[0].displayName).toBe('CLI Python');
   });
 
-  it('should fallback to local templates on error', async () => {
+  it('should throw error when npm query fails', async () => {
     mockExecFileSync.mockImplementation(() => {
       throw new Error('Network error');
     });
 
-    const templates = await listTemplates();
-
-    expect(templates).toHaveLength(1);
-    expect(templates[0].id).toBe('cli-py');
-  });
-});
-
-describe('getLocalTemplateDirectory', () => {
-  it('should return correct local template path', () => {
-    const dir = getLocalTemplateDirectory('cli-py');
-    expect(dir).toContain('templates');
-    expect(dir).toContain('template-cli-py');
-  });
-});
-
-describe('hasLocalTemplate', () => {
-  it('should return true for existing template', async () => {
-    const exists = await hasLocalTemplate('cli-py');
-    expect(exists).toBe(true);
-  });
-
-  it('should return false for non-existing template', async () => {
-    const exists = await hasLocalTemplate('non-existent-template');
-    expect(exists).toBe(false);
+    await expect(listTemplates()).rejects.toThrow('Failed to fetch templates from npm');
   });
 });
 

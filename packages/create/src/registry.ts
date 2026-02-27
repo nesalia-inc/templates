@@ -6,18 +6,10 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { fileURLToPath } from 'node:url';
 
 import type { DiscoveredTemplate, FetchedTemplate, TemplatePackageJson } from './types.js';
 
 const TEMPLATE_SCOPE = '@nesalia/template-';
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEMPLATES_DIR = path.resolve(__dirname, '../templates');
-
-// Fallback local templates for offline mode
-const LOCAL_TEMPLATES = [
-  { id: 'cli-py', name: 'CLI Python', description: 'Python CLI with typer and uv' },
-];
 
 /**
  * List available templates from npm registry
@@ -59,16 +51,8 @@ export const listTemplates = async (): Promise<DiscoveredTemplate[]> => {
       });
 
     return templates;
-  } catch {
-    // Fallback to local templates if npm query fails
-    return LOCAL_TEMPLATES.map(t => ({
-      name: `${TEMPLATE_SCOPE}${t.id}`,
-      version: 'local',
-      id: t.id,
-      displayName: t.name,
-      description: t.description,
-      tags: [],
-    }));
+  } catch (error) {
+    throw new Error(`Failed to fetch templates from npm: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
@@ -228,8 +212,6 @@ export const fetchTemplate = async (templateId: string): Promise<FetchedTemplate
     const tgzPath = path.join(tempDir, tgzFile);
 
     // Extract tarball with --strip-components=1 to prevent path traversal
-    // This strips the first path component (package directory) from all entries,
-    // ensuring files are extracted directly into tempDir without traversal
     execFileSync('tar', ['-xzf', tgzPath, '-C', tempDir, '--strip-components=1'], { stdio: 'pipe' });
 
     // Validate extracted files before using them
@@ -244,26 +226,6 @@ export const fetchTemplate = async (templateId: string): Promise<FetchedTemplate
     // Cleanup on error
     await fs.rm(tempDir, { recursive: true, force: true });
     throw error;
-  }
-};
-
-/**
- * Get local template directory (fallback for offline mode)
- */
-export const getLocalTemplateDirectory = (templateId: string): string => {
-  return path.join(TEMPLATES_DIR, `template-${templateId}`);
-};
-
-/**
- * Check if template exists locally (offline mode)
- */
-export const hasLocalTemplate = async (templateId: string): Promise<boolean> => {
-  const dir = getLocalTemplateDirectory(templateId);
-  try {
-    await fs.access(dir);
-    return true;
-  } catch {
-    return false;
   }
 };
 

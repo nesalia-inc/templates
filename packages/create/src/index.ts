@@ -9,8 +9,6 @@ import path from 'node:path';
 import {
   listTemplates,
   fetchTemplate,
-  getLocalTemplateDirectory,
-  hasLocalTemplate,
   cleanupTemplate,
 } from './registry.js';
 import type { DiscoveredTemplate } from './types.js';
@@ -90,32 +88,10 @@ async function createProject(
     }
   }
 
-  // Determine template source: try remote first, fallback to local
-  let templateDir: string;
-  let tempDir: string | undefined;
-
-  try {
-    console.log(`Fetching template "${templateId}" from npm...`);
-    const fetched = await fetchTemplate(templateId);
-    templateDir = fetched.directory;
-    tempDir = fetched.tempDirectory;
-    console.log(`Using template: ${fetched.manifest.nesalia?.displayName || templateId}`);
-  } catch {
-    // Fallback to local template if remote fetch fails
-    console.log(`Remote fetch failed, trying local template...`);
-    const localExists = await hasLocalTemplate(templateId);
-    if (!localExists) {
-      console.error(`Error: Template "${templateId}" not found.`);
-      console.log('');
-      console.log('Available templates:');
-      templates.forEach(t => {
-        console.log(`  ${t.id.padEnd(15)} ${t.displayName} - ${t.description}`);
-      });
-      console.log('');
-      process.exit(1);
-    }
-    templateDir = getLocalTemplateDirectory(templateId);
-  }
+  // Fetch template from npm
+  console.log(`Fetching template "${templateId}" from npm...`);
+  const fetched = await fetchTemplate(templateId);
+  console.log(`Using template: ${fetched.manifest.nesalia?.displayName || templateId}`);
 
   // Variables for template substitution
   const variables: Record<string, string> = {
@@ -124,12 +100,10 @@ async function createProject(
 
   // Copy template files with variable substitution
   console.log(`Creating project "${projectName === '.' ? 'current directory' : projectName}"...`);
-  await copyDir(templateDir, targetDir, variables, pythonPackageName);
+  await copyDir(fetched.directory, targetDir, variables, pythonPackageName);
 
-  // Cleanup temp directory if remote template was used
-  if (tempDir) {
-    await cleanupTemplate(tempDir);
-  }
+  // Cleanup temp directory
+  await cleanupTemplate(fetched.tempDirectory);
 
   console.log('');
   console.log('✓ Project created successfully!');
