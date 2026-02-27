@@ -5,15 +5,15 @@
 import enquirer from 'enquirer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const TEMPLATES = [
-  { id: 'cli-py', name: 'CLI Python', description: 'Python CLI with typer and uv' },
-];
-
-// Get the templates directory (relative to the package directory)
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEMPLATES_DIR = path.resolve(__dirname, '../templates');
+import {
+  listTemplates,
+  fetchTemplate,
+  getLocalTemplateDirectory,
+  hasLocalTemplate,
+  cleanupTemplate,
+} from './registry.js';
+import type { DiscoveredTemplate } from './types.js';
 
 interface Options {
   template?: string;
@@ -53,10 +53,13 @@ async function copyDir(
   }
 }
 
-async function createProject(projectName: string, templateId: string): Promise<void> {
-  const templateDir = path.join(TEMPLATES_DIR, `template-${templateId}`);
-  const targetDir = path.join(process.cwd(), projectName);
+async function createProject(
+  projectName: string,
+  templateId: string,
+  templates: DiscoveredTemplate[]
+): Promise<void> {
   const cwd = process.cwd();
+  const targetDir = path.join(cwd, projectName);
 
   // Validate project name for Python package naming (snake_case)
   const pythonPackageName = projectName === '.' ? 'my-cli' : projectName;
@@ -76,20 +79,6 @@ async function createProject(projectName: string, templateId: string): Promise<v
     process.exit(1);
   }
 
-  // Check if template exists
-  try {
-    await fs.access(templateDir);
-  } catch {
-    console.error(`Error: Template "${templateId}" not found.`);
-    console.log('');
-    console.log('Available templates:');
-    TEMPLATES.forEach(t => {
-      console.log(`  ${t.id}`);
-    });
-    console.log('');
-    process.exit(1);
-  }
-
   // Check if project directory already exists (skip for current directory)
   if (projectName !== '.') {
     try {
@@ -101,16 +90,46 @@ async function createProject(projectName: string, templateId: string): Promise<v
     }
   }
 
+  // Determine template source: try remote first, fallback to local
+  let templateDir: string;
+  let useLocal = false;
+
+  try {
+    console.log(`Fetching template "${templateId}" from npm...`);
+    const fetched = await fetchTemplate(templateId);
+    templateDir = fetched.directory;
+    console.log(`Using template: ${fetched.manifest.nesalia?.displayName || templateId}`);
+  } catch {
+    // Fallback to local template if remote fetch fails
+    console.log(`Remote fetch failed, trying local template...`);
+    const localExists = await hasLocalTemplate(templateId);
+    if (!localExists) {
+      console.error(`Error: Template "${templateId}" not found.`);
+      console.log('');
+      console.log('Available templates:');
+      templates.forEach(t => {
+        console.log(`  ${t.id.padEnd(15)} ${t.displayName} - ${t.description}`);
+      });
+      console.log('');
+      process.exit(1);
+    }
+    templateDir = getLocalTemplateDirectory(templateId);
+    useLocal = true;
+  }
+
   // Variables for template substitution
   const variables: Record<string, string> = {
     name: pythonPackageName,
   };
 
   // Copy template files with variable substitution
-  console.log(
-    `Creating project "${projectName === '.' ? 'current directory' : projectName}" from template "${templateId}"...`
-  );
+  console.log(`Creating project "${projectName === '.' ? 'current directory' : projectName}"...`);
   await copyDir(templateDir, targetDir, variables, pythonPackageName);
+
+  // Cleanup temp directory if remote template was used
+  if (!useLocal) {
+    await cleanupTemplate(path.dirname(templateDir));
+  }
 
   console.log('');
   console.log('✓ Project created successfully!');
@@ -118,7 +137,7 @@ async function createProject(projectName: string, templateId: string): Promise<v
   if (projectName !== '.') {
     console.log('Next steps:');
     console.log(`  cd ${projectName}`);
-    console.log('  # Add your CLI code');
+    console.log('  # Add your project code');
     console.log('');
   }
 }
@@ -154,7 +173,7 @@ function parseArgs(args: string[]): { projectName?: string; options: Options } {
   return { projectName, options };
 }
 
-function showHelp(): void {
+function showHelp(templates: DiscoveredTemplate[]): void {
   console.log(
     `
 @nesalia/create - Create nesalia projects
@@ -166,26 +185,30 @@ Usage:
 
 Options:
   -n, --name <name>       Project name
-  -t, --template <name>   Template to use (cli-py)
-  -l, --list               List available templates
-  -h, --help               Show this help message
+  -t, --template <name>   Template to use (e.g., cli-py)
+  -l, --list              List available templates
+  -h, --help             Show this help message
 
 Examples:
   npm init @nesalia/create my-cli
   npm init @nesalia/create my-cli --template cli-py
   npx @nesalia/create --name my-cli --template cli-py
 
-Templates:
-${TEMPLATES.map(t => `  ${t.id.padEnd(10)} ${t.description}`).join('\n')}
+Templates:${templates.length > 0 ? '\n' + templates.map(t => `  ${t.id.padEnd(15)} ${t.displayName} - ${t.description}`).join('\n') : '  (run --list to discover available templates)'}
 `.trim()
   );
 }
 
-function showTemplates(): void {
+function showTemplates(templates: DiscoveredTemplate[]): void {
   console.log('Available templates:');
   console.log('');
-  TEMPLATES.forEach((t, i) => {
-    console.log(`  ${(i + 1).toString().padEnd(2)}. ${t.id.padEnd(10)} - ${t.description}`);
+  if (templates.length === 0) {
+    console.log('  No templates found. Make sure you have internet access.');
+    console.log('');
+    return;
+  }
+  templates.forEach((t, i) => {
+    console.log(`  ${(i + 1).toString().padEnd(2)}. ${t.id.padEnd(15)} - ${t.description}`);
   });
   console.log('');
 }
@@ -193,13 +216,21 @@ function showTemplates(): void {
 export async function run(args: string[]): Promise<void> {
   const { projectName, options } = parseArgs(args);
 
+  // Load available templates
+  let templates: DiscoveredTemplate[] = [];
+  try {
+    templates = await listTemplates();
+  } catch {
+    // Continue with empty templates list
+  }
+
   if (options.help) {
-    showHelp();
+    showHelp(templates);
     return;
   }
 
   if (options.list) {
-    showTemplates();
+    showTemplates(templates);
     return;
   }
 
@@ -229,29 +260,36 @@ export async function run(args: string[]): Promise<void> {
   }
 
   if (!finalTemplate) {
+    // Use available templates or fallback to default
+    const choices =
+      templates.length > 0
+        ? templates.map(t => ({
+            name: t.id,
+            message: `${t.displayName} - ${t.description}`,
+          }))
+        : [{ name: 'cli-py', message: 'CLI Python - Python CLI with typer and uv' }];
+
     const response = await enquirer.prompt<{ template: string }>({
       type: 'select',
       name: 'template',
       message: 'Select a template:',
-      choices: TEMPLATES.map(t => ({
-        name: t.id,
-        message: `${t.name} - ${t.description}`,
-      })),
+      choices,
       initial: 0,
     });
     finalTemplate = response.template;
   }
 
-  if (finalTemplate && !TEMPLATES.find(t => t.id === finalTemplate)) {
+  // Validate template exists in list (or use anyway if list is empty)
+  if (templates.length > 0 && !templates.find(t => t.id === finalTemplate)) {
     console.error(`Error: Unknown template "${finalTemplate}"`);
     console.log('');
     console.log('Available templates:');
-    TEMPLATES.forEach(t => {
+    templates.forEach(t => {
       console.log(`  ${t.id}`);
     });
     console.log('');
     process.exit(1);
   }
 
-  await createProject(finalProjectName, finalTemplate);
+  await createProject(finalProjectName, finalTemplate, templates);
 }
